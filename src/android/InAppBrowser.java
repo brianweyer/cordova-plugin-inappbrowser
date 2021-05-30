@@ -116,8 +116,9 @@ public class InAppBrowser extends CordovaPlugin {
     private static final String FOOTER_COLOR = "footercolor";
     private static final String BEFORELOAD = "beforeload";
     private static final String FULLSCREEN = "fullscreen";
+    private static final String HOME_URL = "homeurl";
 
-    private static final List customizableOptions = Arrays.asList(CLOSE_BUTTON_CAPTION, TOOLBAR_COLOR, NAVIGATION_COLOR, CLOSE_BUTTON_COLOR, FOOTER_COLOR);
+    private static final List customizableOptions = Arrays.asList(CLOSE_BUTTON_CAPTION, TOOLBAR_COLOR, NAVIGATION_COLOR, CLOSE_BUTTON_COLOR, FOOTER_COLOR, HOME_URL);
 
     private InAppBrowserDialog dialog;
     private WebView inAppWebView;
@@ -144,6 +145,7 @@ public class InAppBrowser extends CordovaPlugin {
     private boolean showFooter = false;
     private String footerColor = "";
     private String beforeload = "";
+    private String homeurl = "";
     private boolean fullscreen = true;
     private String[] allowedSchemes;
     private InAppBrowserClient currentClient;
@@ -710,6 +712,10 @@ public class InAppBrowser extends CordovaPlugin {
             if (fullscreenSet != null) {
                 fullscreen = fullscreenSet.equals("yes") ? true : false;
             }
+            String homeurlSet = features.get(HOME_URL);
+            if (homeurlSet != null) {
+                homeurl = homeurlSet;
+            }
         }
 
         final CordovaWebView thatWebView = this.webView;
@@ -1200,7 +1206,7 @@ public class InAppBrowser extends CordovaPlugin {
                 } catch (android.content.ActivityNotFoundException e) {
                     LOG.e(LOG_TAG, "Error dialing " + url + ": " + e.toString());
                 }
-            } else if (url.startsWith("geo:") || url.startsWith(WebView.SCHEME_MAILTO) || url.startsWith("market:") || url.startsWith("intent:")) {
+            } else if (url.startsWith("geo:") || url.startsWith(WebView.SCHEME_MAILTO) || url.startsWith("market:") || url.startsWith("intent:") || url.startsWith("tigerschedule:")) {
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setData(Uri.parse(url));
@@ -1426,37 +1432,26 @@ public class InAppBrowser extends CordovaPlugin {
          */
         @Override
         public void onReceivedHttpAuthRequest(WebView view, HttpAuthHandler handler, String host, String realm) {
-
-            // Check if there is some plugin which can resolve this auth challenge
-            PluginManager pluginManager = null;
-            try {
-                Method gpm = webView.getClass().getMethod("getPluginManager");
-                pluginManager = (PluginManager)gpm.invoke(webView);
-            } catch (NoSuchMethodException e) {
-                LOG.d(LOG_TAG, e.getLocalizedMessage());
-            } catch (IllegalAccessException e) {
-                LOG.d(LOG_TAG, e.getLocalizedMessage());
-            } catch (InvocationTargetException e) {
-                LOG.d(LOG_TAG, e.getLocalizedMessage());
-            }
-
-            if (pluginManager == null) {
-                try {
-                    Field pmf = webView.getClass().getField("pluginManager");
-                    pluginManager = (PluginManager)pmf.get(webView);
-                } catch (NoSuchFieldException e) {
-                    LOG.d(LOG_TAG, e.getLocalizedMessage());
-                } catch (IllegalAccessException e) {
-                    LOG.d(LOG_TAG, e.getLocalizedMessage());
+            AuthenticationDialog dialog = new AuthenticationDialog(cordova.getActivity(), host, realm);
+            dialog.setOkListener(new AuthenticationDialog.OkListener() {
+                public void onOk(String host, String realm, String username, String password) {
+                    handler.proceed(username, password);
                 }
-            }
+            });
 
-            if (pluginManager != null && pluginManager.onReceivedHttpAuthRequest(webView, new CordovaHttpAuthHandler(handler), host, realm)) {
-                return;
-            }
+            dialog.setCancelListener(new AuthenticationDialog.CancelListener() {
+                public void onCancel() {
+                    if (homeurl != "") {
+                        LOG.d(LOG_TAG, homeurl);
+                        view.loadUrl(homeurl);
+                    }
+                    handler.cancel();
+                }
+            });
 
-            // By default handle 401 like we'd normally do!
-            super.onReceivedHttpAuthRequest(view, handler, host, realm);
+            dialog.show();
+            
+            return;
         }
     }
 }

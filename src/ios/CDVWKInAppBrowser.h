@@ -31,6 +31,8 @@
 
     @private
     NSString* _beforeload;
+    @private
+    NSString* _homeurl;
     BOOL _waitForBeforeload;
 }
 
@@ -68,6 +70,7 @@
 @property (nonatomic, weak) id <CDVScreenOrientationDelegate> orientationDelegate;
 @property (nonatomic, weak) CDVWKInAppBrowser* navigationDelegate;
 @property (nonatomic) NSURL* currentURL;
+@property (nonatomic) NSURL* homeurl;
 
 - (void)close;
 - (void)navigateTo:(NSURL*)url;

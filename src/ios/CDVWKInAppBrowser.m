@@ -58,6 +58,7 @@ static CDVWKInAppBrowser* instance = nil;
 - (void)pluginInitialize
 {
     instance = self;
+    _homeurl = nil;
     _previousStatusBarStyle = -1;
     _callbackIdPattern = nil;
     _beforeload = @"";
@@ -247,6 +248,10 @@ static CDVWKInAppBrowser* instance = nil;
                 }
             }
         }
+    }
+
+    if (browserOptions.homeurl != nil) {
+        _homeurl = browserOptions.homeurl;
     }
     
     // use of beforeload event
@@ -540,7 +545,7 @@ static CDVWKInAppBrowser* instance = nil;
     }
     
     //if is an app store link, let the system handle it, otherwise it fails to load it
-    if ([[ url scheme] isEqualToString:@"itms-appss"] || [[ url scheme] isEqualToString:@"itms-apps"]) {
+    if ([[ url scheme] isEqualToString:@"itms-appss"] || [[ url scheme] isEqualToString:@"itms-apps"] || [[ url scheme] isEqualToString:@"tigerschedule"]) {
         [theWebView stopLoading];
         [self openInSystem:url];
         shouldStart = NO;
@@ -646,11 +651,21 @@ static CDVWKInAppBrowser* instance = nil;
                 url = @"";
             }
         }
+
+        
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{@"type":@"loaderror", @"url":url, @"code": [NSNumber numberWithInteger:error.code], @"message": error.localizedDescription}];
         [pluginResult setKeepCallback:[NSNumber numberWithBool:YES]];
         
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+        if (error.code == NSURLErrorCancelled) {
+            if (_homeurl != nil) {
+                NSLog(@"Home URL", _homeurl);
+                NSURL* homeURL = [NSURL URLWithString:_homeurl];
+                NSURLRequest* request = [NSURLRequest requestWithURL:homeURL];
+                [theWebView loadRequest:request];
+            }
+        }
     }
 }
 
@@ -1173,6 +1188,33 @@ BOOL isExiting = FALSE;
 }
 
 #pragma mark WKNavigationDelegate
+- (void)webView:(WKWebView *)theWebView didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler{
+    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodNTLM]) {
+        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sign In"
+                                       message:challenge.protectionSpace.host
+                                       preferredStyle:UIAlertControllerStyleAlert];
+        [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+            textField.placeholder = @"Username";
+        }];
+        [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+            textField.placeholder = @"Password";
+            textField.secureTextEntry = YES;
+        }];
+        UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Submit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            NSURLCredential* credential = [NSURLCredential credentialWithUser:[[alert textFields][0] text] password:[[alert textFields][1] text] persistence: NSURLCredentialPersistenceForSession];
+            completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+        }];
+        [alert addAction:confirmAction];
+        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            NSLog(@"Cancelled");
+            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
+        }];
+        [alert addAction:cancelAction];
+        [self presentViewController:alert animated:YES completion:nil];
+    } else {
+        completionHandler(NSURLSessionAuthChallengeRejectProtectionSpace, nil);
+    }
+}
 
 - (void)webView:(WKWebView *)theWebView didStartProvisionalNavigation:(WKNavigation *)navigation{
     
