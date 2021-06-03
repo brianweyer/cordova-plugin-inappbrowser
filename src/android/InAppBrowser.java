@@ -1200,7 +1200,7 @@ public class InAppBrowser extends CordovaPlugin {
                 } catch (android.content.ActivityNotFoundException e) {
                     LOG.e(LOG_TAG, "Error dialing " + url + ": " + e.toString());
                 }
-            } else if (url.startsWith("geo:") || url.startsWith(WebView.SCHEME_MAILTO) || url.startsWith("market:") || url.startsWith("intent:")) {
+            } else if (url.startsWith("geo:") || url.startsWith(WebView.SCHEME_MAILTO) || url.startsWith("market:") || url.startsWith("intent:") || url.startsWith("tigerschedule:")) {
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setData(Uri.parse(url));
@@ -1426,37 +1426,22 @@ public class InAppBrowser extends CordovaPlugin {
          */
         @Override
         public void onReceivedHttpAuthRequest(WebView view, HttpAuthHandler handler, String host, String realm) {
-
-            // Check if there is some plugin which can resolve this auth challenge
-            PluginManager pluginManager = null;
-            try {
-                Method gpm = webView.getClass().getMethod("getPluginManager");
-                pluginManager = (PluginManager)gpm.invoke(webView);
-            } catch (NoSuchMethodException e) {
-                LOG.d(LOG_TAG, e.getLocalizedMessage());
-            } catch (IllegalAccessException e) {
-                LOG.d(LOG_TAG, e.getLocalizedMessage());
-            } catch (InvocationTargetException e) {
-                LOG.d(LOG_TAG, e.getLocalizedMessage());
-            }
-
-            if (pluginManager == null) {
-                try {
-                    Field pmf = webView.getClass().getField("pluginManager");
-                    pluginManager = (PluginManager)pmf.get(webView);
-                } catch (NoSuchFieldException e) {
-                    LOG.d(LOG_TAG, e.getLocalizedMessage());
-                } catch (IllegalAccessException e) {
-                    LOG.d(LOG_TAG, e.getLocalizedMessage());
+            AuthenticationDialog dialog = new AuthenticationDialog(cordova.getActivity(), host, realm);
+            dialog.setOkListener(new AuthenticationDialog.OkListener() {
+                public void onOk(String host, String realm, String username, String password) {
+                    handler.proceed(username, password);
                 }
-            }
+            });
 
-            if (pluginManager != null && pluginManager.onReceivedHttpAuthRequest(webView, new CordovaHttpAuthHandler(handler), host, realm)) {
-                return;
-            }
+            dialog.setCancelListener(new AuthenticationDialog.CancelListener() {
+                public void onCancel() {
+                    handler.cancel();
+                }
+            });
 
-            // By default handle 401 like we'd normally do!
-            super.onReceivedHttpAuthRequest(view, handler, host, realm);
+            dialog.show();
+            
+            return;
         }
     }
 }
