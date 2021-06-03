@@ -58,7 +58,6 @@ static CDVWKInAppBrowser* instance = nil;
 - (void)pluginInitialize
 {
     instance = self;
-    _homeurl = nil;
     _previousStatusBarStyle = -1;
     _callbackIdPattern = nil;
     _beforeload = @"";
@@ -248,10 +247,6 @@ static CDVWKInAppBrowser* instance = nil;
                 }
             }
         }
-    }
-
-    if (browserOptions.homeurl != nil) {
-        _homeurl = browserOptions.homeurl;
     }
     
     // use of beforeload event
@@ -658,14 +653,6 @@ static CDVWKInAppBrowser* instance = nil;
         [pluginResult setKeepCallback:[NSNumber numberWithBool:YES]];
         
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
-        if (error.code == NSURLErrorCancelled) {
-            if (_homeurl != nil) {
-                NSLog(@"Home URL", _homeurl);
-                NSURL* homeURL = [NSURL URLWithString:_homeurl];
-                NSURLRequest* request = [NSURLRequest requestWithURL:homeURL];
-                [theWebView loadRequest:request];
-            }
-        }
     }
 }
 

@@ -116,7 +116,6 @@ public class InAppBrowser extends CordovaPlugin {
     private static final String FOOTER_COLOR = "footercolor";
     private static final String BEFORELOAD = "beforeload";
     private static final String FULLSCREEN = "fullscreen";
-    private static final String HOME_URL = "homeurl";
 
     private static final List customizableOptions = Arrays.asList(CLOSE_BUTTON_CAPTION, TOOLBAR_COLOR, NAVIGATION_COLOR, CLOSE_BUTTON_COLOR, FOOTER_COLOR, HOME_URL);
 
@@ -145,7 +144,6 @@ public class InAppBrowser extends CordovaPlugin {
     private boolean showFooter = false;
     private String footerColor = "";
     private String beforeload = "";
-    private String homeurl = "";
     private boolean fullscreen = true;
     private String[] allowedSchemes;
     private InAppBrowserClient currentClient;
@@ -711,10 +709,6 @@ public class InAppBrowser extends CordovaPlugin {
             String fullscreenSet = features.get(FULLSCREEN);
             if (fullscreenSet != null) {
                 fullscreen = fullscreenSet.equals("yes") ? true : false;
-            }
-            String homeurlSet = features.get(HOME_URL);
-            if (homeurlSet != null) {
-                homeurl = homeurlSet;
             }
         }
 
@@ -1441,10 +1435,6 @@ public class InAppBrowser extends CordovaPlugin {
 
             dialog.setCancelListener(new AuthenticationDialog.CancelListener() {
                 public void onCancel() {
-                    if (homeurl != "") {
-                        LOG.d(LOG_TAG, homeurl);
-                        view.loadUrl(homeurl);
-                    }
                     handler.cancel();
                 }
             });
