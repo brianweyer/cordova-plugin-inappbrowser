@@ -540,7 +540,7 @@ static CDVWKInAppBrowser* instance = nil;
     }
     
     //if is an app store link, let the system handle it, otherwise it fails to load it
-    if ([[ url scheme] isEqualToString:@"itms-appss"] || [[ url scheme] isEqualToString:@"itms-apps"] || [[ url scheme] isEqualToString:@"tigerschedule"]) {
+    if ([[ url scheme] isEqualToString:@"itms-appss"] || [[ url scheme] isEqualToString:@"itms-apps"]) {
         [theWebView stopLoading];
         [self openInSystem:url];
         shouldStart = NO;
@@ -1176,7 +1176,7 @@ BOOL isExiting = FALSE;
 
 #pragma mark WKNavigationDelegate
 - (void)webView:(WKWebView *)theWebView didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler{
-    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodNTLM]) {
+    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodNTLM] || [challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodHTTPBasic] || [challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodHTTPDigest]) {
         UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sign In"
                                        message:challenge.protectionSpace.host
                                        preferredStyle:UIAlertControllerStyleAlert];
